@@ -1,0 +1,112 @@
+---
+title: "Practical Machine Learning Project"
+author: "Zhang, Zi Wei"
+date: "March 8, 2015"
+output: html_document
+---
+
+In this project, I will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. My goal is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. More Details: <https://class.coursera.org/predmachlearn-012/human_grading/view/courses/973547/assessments/4/submissions>.
+
+###data preparation and Pre-Processing
+
+My fist step is to load the data from local files, remove any predictors of near zero, most-NA, and corralated ones.
+
+```{r}
+library(caret)
+set.seed(2015)
+dat <- read.csv('data/pml-training.csv', row.names = 1)
+dim(dat)
+#remove half-NA, Zero- and Near Zero-Variance Predictors
+dat <- dat[colSums(is.na(dat)) < 0.5*nrow(dat)]  #93 variavbles
+nzv <- nearZeroVar(dat)
+dat <- dat[, -nzv] #59 variavbles
+dim(dat)
+#Identifyi and Remove Correlated Predictors
+numericData <- dat[sapply(dat, is.numeric)]
+descrCor <- cor(numericData)
+summary(descrCor[upper.tri(descrCor)])
+highlyCorDescr <- findCorrelation(descrCor, cutoff = .8)
+highlyCorCol <- colnames(numericData[,highlyCorDescr])
+dat <- dat[, -which(colnames(dat) %in% highlyCorCol)] 
+dim(dat)
+```
+
+### Model Training and Parameter Tuning
+
+* Simple Splitting Based on the Outcome by 6/4
+* Model Parameter setting (cross-validation resampling method with 10-fold)
+* Model fitting and selecting
+
+```{r}
+#Simple Splitting 
+inTraining <- createDataPartition(dat$classe, p = .6, list = FALSE)
+training <- dat[ inTraining,]
+testing  <- dat[-inTraining,]
+
+#Model Parameter Setting
+fitControl <- trainControl(method = "cv", number = 10)
+
+#Model List: http://topepo.github.io/caret/modelList.html
+# Generalized Linear Model (glm)
+start <- proc.time()
+gbmFit <- train(classe ~ ., data = training,
+                 method = "gbm",
+                 trControl = fitControl,
+                 verbose = FALSE)
+elapsed <- proc.time() - start
+```
+I've tried 4 modles: Generalized Linear Model (glm), Partial Least Squares (pls), gradient boosting machine (gbm) model, and Random Forest (RF) model. The code for them are similar except for 'method= modelCode'. the glm is not fitted to this data, and pls was fast but got a low accuracy. The final choice is gbm, due to its high accuracy. rf model is even higher in accuracy, however, it consumed twice the time.
+
+The modeling and testing code and results please refer to the annex.
+
+###Final prediction:
+Predicted the csv test data with the gbm model and write the results to text files.
+```{r, echo=FALSE}
+finalTesting <- read.csv('data/pml-testing.csv', row.names = 1)
+finalPrediction <- predict(gbmFit, finalTesting)
+# write prediction files
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("./results/problem_id_", i, ".txt")
+    write.table(x[i], file = filename, quote = FALSE, row.names = FALSE, col.names = FALSE)
+  }
+}
+pml_write_files(finalPrediction)
+```
+###Annex Model Results Comparing
+
+```{r}
+# gradient boosting machine (gbm) model
+elapsed
+gbmFit
+prediction_gbm <- predict(gbmFit, testing)
+confusionMatrix(prediction_gbm, testing$classe)
+plot(gbmFit)
+
+#Random Forest (RF)
+start <- proc.time()
+rfFit <- train(classe ~ ., data = training,
+                method = "rf",
+                trControl = fitControl,
+                verbose = FALSE)
+elapsed <- proc.time() - start
+elapsed
+rfFit 
+prediction_rf <- predict(rfFit, testing)
+confusionMatrix(prediction_rf, testing$classe)
+plot(rfFit)
+
+#Partial Least Squares (pls)
+start <- proc.time()
+plsFit <- train(classe ~ ., data = training,
+               method = "pls",
+               trControl = fitControl,
+               verbose = FALSE)
+elapsed <- proc.time() - start
+elapsed
+plsFit
+prediction_pls <- predict(plsFit, testing)
+confusionMatrix(prediction_pls, testing$classe)
+plot(plsFit)
+```
