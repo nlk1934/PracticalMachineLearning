@@ -5,7 +5,7 @@ date: "March 8, 2015"
 output: html_document
 ---
 
-In this project, I will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. My goal is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. More Details: <https://class.coursera.org/predmachlearn-012/human_grading/view/courses/973547/assessments/4/submissions>.
+In this project, I am to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. My goal is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. More Details: <https://class.coursera.org/predmachlearn-012/human_grading/view/courses/973547/assessments/4/submissions>.
 
 ###data preparation and Pre-Processing
 
@@ -55,9 +55,9 @@ gbmFit <- train(classe ~ ., data = training,
                  verbose = FALSE)
 elapsed <- proc.time() - start
 ```
-I've tried 4 modles: Generalized Linear Model (glm), Partial Least Squares (pls), gradient boosting machine (gbm) model, and Random Forest (RF) model. The code for them are similar except for 'method= modelCode'. the glm is not fitted to this data, and pls was fast but got a low accuracy. The final choice is gbm, due to its high accuracy. rf model is even higher in accuracy, however, it consumed twice the time.
+I've tried 3 modles: Recursive Partitioning (rpart), gradient boosting machine (gbm) model, and Random Forest (RF) model. The code for them are similar except for 'method= modelCode'. The rpart is not usable in this data. The final choice is gbm, due to its high accuracy. rf model is even higher in accuracy, however, it consumed twice the time.
 
-The modeling and testing code and results please refer to the annex.
+The modeling codes and results are in the annex at the end.
 
 ###Final prediction:
 Predicted the csv test data with the gbm model and write the results to text files.
@@ -97,16 +97,10 @@ prediction_rf <- predict(rfFit, testing)
 confusionMatrix(prediction_rf, testing$classe)
 plot(rfFit)
 
-#Partial Least Squares (pls)
-start <- proc.time()
-plsFit <- train(classe ~ ., data = training,
-               method = "pls",
-               trControl = fitControl,
-               verbose = FALSE)
-elapsed <- proc.time() - start
-elapsed
-plsFit
-prediction_pls <- predict(plsFit, testing)
-confusionMatrix(prediction_pls, testing$classe)
-plot(plsFit)
+#Recursive Partitioning (rpart)
+# rpartFit <- train(classe ~ ., data = training,
+#                method = "rpart",
+#                trControl = fitControl,
+#                verbose = FALSE)
+# This molde cannot be fitted.
 ```
